@@ -14,6 +14,7 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 import data
+import model as lm_model
 
 parser = argparse.ArgumentParser(description='PyTorch PTB Language Model')
 
@@ -34,6 +35,16 @@ parser.add_argument('--temperature', type=float, default=1.0,
                     help='temperature - higher will increase diversity')
 parser.add_argument('--log-interval', type=int, default=100,
                     help='reporting interval')
+
+parser.add_argument('--model', type=str, default='LSTM',
+                    help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
+parser.add_argument('--emsize', type=int, default=50,
+                    help='size of word embeddings')
+parser.add_argument('--nhid', type=int, default=50,
+                    help='humber of hidden units per layer')
+parser.add_argument('--nlayers', type=int, default=1,
+                    help='number of layers')
+
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -47,31 +58,38 @@ if torch.cuda.is_available():
 if args.temperature < 1e-3:
     parser.error("--temperature has to be greater or equal 1e-3")
 
+corpus = data.Corpus(args.data)
+ntokens = len(corpus.dictionary)
+print('vocab size: ', ntokens)
+
+model = lm_model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers)
 with open(args.checkpoint, 'rb') as f:
-    model = torch.load(f)
+    model.load_state_dict(torch.load(f))
 
 if args.cuda:
     model.cuda()
 else:
     model.cpu()
 
-corpus = data.Corpus(args.data)
-ntokens = len(corpus.dictionary)
-print 'vocab size: ', ntokens
-hidden = model.init_hidden(1)
-input = Variable(torch.rand(1, 1).mul(ntokens).long(), volatile=True)
-if args.cuda:
-    input.data = input.data.cuda()
+""" Method to generate words using a language model
+"""
+def generate_words(model, num_words, temperature, output_file, log_interval=100,cuda=False):
+    input = Variable(torch.rand(1, 1).mul(ntokens).long(), volatile=True)
+    hidden = model.init_hidden(1)
+    if cuda:
+        input.data = input.data.cuda()
 
-with open(args.outf, 'w') as outf:
-    for i in range(args.words):
-        output, hidden = model(input, hidden)
-        word_weights = output.squeeze().data.div(args.temperature).exp().cpu()
-        word_idx = torch.multinomial(word_weights, 1)[0]
-        input.data.fill_(word_idx)
-        word = corpus.dictionary.idx2word[word_idx]
+    with open(output_file, 'w') as outf:
+        for i in range(num_words):
+            output, hidden = model(input, hidden)
+            word_weights = output.squeeze().data.div(temperature).exp().cpu()
+            word_idx = torch.multinomial(word_weights, 1)[0]
+            input.data.fill_(word_idx)
+            word = corpus.dictionary.idx2word[word_idx]
 
-        outf.write(word + ('\n' if i % 20 == 19 else ' '))
+            outf.write(word + ('\n' if i % 20 == 19 else ' '))
 
-        if i % args.log_interval == 0:
-            print('| Generated {}/{} words'.format(i, args.words))
+            if i % args.log_interval == 0:
+                print('| Generated {}/{} words'.format(i, args.words))
+
+generate_words(model, args.words, args.temperature, args.outf, 100, False)
