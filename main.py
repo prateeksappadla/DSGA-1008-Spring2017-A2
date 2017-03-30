@@ -164,7 +164,7 @@ for epoch in range(1, args.epochs+1):
     if epoch > 19 and epoch % 2 == 0:
         test_loss = evaluate(test_data)
         print('=' * 89)
-        print('| end of epoch {:3d} | test loss {:5.2f} | test ppl {:8.2f}'.format(
+        print('| end of epoch {:3d} | test loss {:5.2f} | test ppl {:8.2f}'.format(epoch,
         test_loss, math.exp(test_loss)))
         print('=' * 89)
 
