@@ -161,6 +161,14 @@ for epoch in range(1, args.epochs+1):
         lr /= 4
     prev_val_loss = val_loss
 
+    if epoch > 19 and epoch % 2 == 0:
+        test_loss = evaluate(test_data)
+        print('=' * 89)
+        print('| end of epoch {:3d} | test loss {:5.2f} | test ppl {:8.2f}'.format(
+        test_loss, math.exp(test_loss)))
+        print('=' * 89)
+
+
 
 # Run on test data and save the model.
 test_loss = evaluate(test_data)
