@@ -63,7 +63,7 @@ ntokens = len(corpus.dictionary)
 print('vocab size: ', ntokens)
 
 model = lm_model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers)
-with open(args.checkpoint, 'rb') as f:
+with open('models/' + args.checkpoint, 'rb') as f:
     model.load_state_dict(torch.load(f))
 
 if args.cuda:

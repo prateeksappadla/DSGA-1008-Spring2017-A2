@@ -178,5 +178,5 @@ print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
 print('=' * 89)
 
 if args.save != '':
-    with open(args.save, 'wb') as f:
+    with open('models/' + args.save, 'wb') as f:
         torch.save(model.state_dict(), f)
