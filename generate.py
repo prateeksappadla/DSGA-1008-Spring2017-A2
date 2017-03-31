@@ -44,6 +44,11 @@ parser.add_argument('--nhid', type=int, default=50,
                     help='humber of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=1,
                     help='number of layers')
+parser.add_argument('--dropout', type=float, default=0.2,
+                    help='dropout applied to layers (0 = no dropout)')
+parser.add_argument('--tied', action='store_true',
+                    help='tie the word embedding and softmax weights')
+
 
 args = parser.parse_args()
 
@@ -62,7 +67,7 @@ corpus = data.Corpus(args.data)
 ntokens = len(corpus.dictionary)
 print('vocab size: ', ntokens)
 
-model = lm_model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers)
+model = lm_model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied)
 with open('models/' + args.checkpoint, 'rb') as f:
     model.load_state_dict(torch.load(f))
 
