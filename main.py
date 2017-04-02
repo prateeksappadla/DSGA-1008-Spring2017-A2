@@ -107,6 +107,8 @@ def get_batch(source, i, evaluation=False):
 
 
 def evaluate(data_source):
+    # Set the model to eval mode to adjust dropout 
+    model.eval()
     total_loss = 0
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(eval_batch_size)
@@ -120,6 +122,8 @@ def evaluate(data_source):
 
 
 def train():
+    # Set the model to train mode to enable dropout
+    model.train()
     total_loss = 0
     start_time = time.time()
     ntokens = len(corpus.dictionary)
@@ -149,31 +153,42 @@ def train():
             start_time = time.time()
 
 
-# Loop over epochs.
 lr = args.lr
-prev_val_loss = None
-for epoch in range(1, args.epochs+1):
-    epoch_start_time = time.time()
-    train()
-    val_loss = evaluate(val_data)
+best_val_loss = None
+best_epoch = 0
+
+# At any point you can hit Ctrl + C to break out of training early.
+try:
+    for epoch in range(1, args.epochs+1):
+        epoch_start_time = time.time()
+        train()
+        val_loss = evaluate(val_data)
+        print('-' * 89)
+        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
+                                           val_loss, math.exp(val_loss)))
+        print('-' * 89)
+        # Save the model if the validation loss is the best we've seen so far.
+        if not best_val_loss or val_loss < best_val_loss:
+            with open('models/' + args.save, 'wb') as f:
+                torch.save(model.state_dict(), f)
+            best_val_loss = val_loss
+            best_epoch = epoch
+        else:
+            # Anneal the learning rate if no improvement has been seen in the validation dataset.
+            lr /= 4.0
+except KeyboardInterrupt:
     print('-' * 89)
-    print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-            'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                       val_loss, math.exp(val_loss)))
-    print('-' * 89)
-    # Anneal the learning rate.
-    if prev_val_loss and val_loss > prev_val_loss:
-        lr /= 4.0
-    prev_val_loss = val_loss
-
-    if epoch > 19 and epoch % 2 == 0:
-        test_loss = evaluate(test_data)
-        print('=' * 89)
-        print('| end of epoch {:3d} | test loss {:5.2f} | test ppl {:8.2f}'.format(epoch,
-        test_loss, math.exp(test_loss)))
-        print('=' * 89)
+    print('Exiting from training early')
 
 
+print('-' * 89)
+print("Best Model after epoch %d" % best_epoch)
+print('-' * 89)
+
+
+with open('models/' + args.save, 'rb') as f:
+    model.load_state_dict(torch.load(f))
 
 # Run on test data and save the model.
 test_loss = evaluate(test_data)
@@ -181,7 +196,3 @@ print('=' * 89)
 print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
     test_loss, math.exp(test_loss)))
 print('=' * 89)
-
-if args.save != '':
-    with open('models/' + args.save, 'wb') as f:
-        torch.save(model.state_dict(), f)
