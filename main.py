@@ -41,6 +41,7 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
 parser.add_argument('--save', type=str,  default='model.pt',
                     help='path to save the final model')
+parser.add_argument('--vocab-size', type=int, default=10000, help='Vocabulary size')
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -50,7 +51,7 @@ torch.manual_seed(args.seed)
 # Load data
 ###############################################################################
 
-corpus = data.Corpus(args.data)
+corpus = data.Corpus(args.data, args.vocab_size)
 
 def batchify(data, bsz):
     nbatch = data.size(0) // bsz

@@ -48,7 +48,7 @@ parser.add_argument('--dropout', type=float, default=0.2,
                     help='dropout applied to layers (0 = no dropout)')
 parser.add_argument('--tied', action='store_true',
                     help='tie the word embedding and softmax weights')
-
+parser.add_argument('--vocab-size', type=int, default=10000, help='Vocabulary size')
 
 args = parser.parse_args()
 
@@ -63,7 +63,7 @@ if torch.cuda.is_available():
 if args.temperature < 1e-3:
     parser.error("--temperature has to be greater or equal 1e-3")
 
-corpus = data.Corpus(args.data)
+corpus = data.Corpus(args.data, args.vocab_size)
 ntokens = len(corpus.dictionary)
 print('vocab size: ', ntokens)
 
